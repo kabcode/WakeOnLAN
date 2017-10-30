@@ -7,6 +7,7 @@
 
 // windows socket includes
 #include <WinSock2.h>
+#pragma comment(lib, "Ws2_32.lib")
 
 
 
@@ -32,7 +33,7 @@ std::vector<std::string> ReadAddresses(std::string AddressFileName)
 {
 	std::vector<std::string> MACAddresses = std::vector<std::string>();
 	std::ifstream FID(AddressFileName);
-	if (FID.is_open)
+	if (FID.is_open())
 	{
 		std::string Address;
 		while (std::getline(FID,Address))
@@ -41,7 +42,7 @@ std::vector<std::string> ReadAddresses(std::string AddressFileName)
 			if (Address.size() > 0)
 				MACAddresses.push_back(Address);
 		}
-		FID.close;
+		FID.close();
 	}
 
 	return MACAddresses;
@@ -59,6 +60,7 @@ bool SendWakeOnLAN(const std::string MACAddress, unsigned PortAddress, unsigned 
 	}
 
 	// Create socket
+	return true;
 }
 
 int main(int argc, char* argv[])
@@ -84,14 +86,24 @@ int main(int argc, char* argv[])
 	SOCKET SendingSocket = INVALID_SOCKET;
 
 	// Initialize WinSock
-	if (WSAStartup(MAKEWORD(2, 2), &WsaData) != 0)
+	if (WSAStartup(MAKEWORD(2, 2), &WsaData) != NO_ERROR)
 	{
 		std::cout << "WSA startup failed with error:" << std::endl;
 		std::cout << WSAGetLastError() << std::endl;
 	}
 	else
 	{
+		SendingSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
 
+		// Set socket options
+		const int optval{ 1 };
+		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) != NO_ERROR)
+		{
+			std::cout << "Socket startup failed with error:" << std::endl;
+			std::cout << WSAGetLastError() << std::endl;
+		}
 	}
+
+	return 1;
 
 }
