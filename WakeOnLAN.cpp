@@ -70,23 +70,27 @@ bool SendWakeOnLAN(const std::string MACAddress, unsigned PortAddress, unsigned 
 	{
 		std::cout << "WSA startup failed with error:" << std::endl;
 		std::cout << WSAGetLastError() << std::endl;
+		return false;
 	}
 	else
 	{
+		// Initialize socket with protocol properties (internet protocol, datagram-based protocol (size limited to 512bytes))
 		SendingSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 		if (SendingSocket == INVALID_SOCKET)
 		{
 			std::cout << "Socket is not initialized:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
+			return false;
 		}
 
-		// Set socket options
+		// Set socket options (broadcast)
 		const int optval{ 1 };
 		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) != NO_ERROR)
 		{
 			std::cout << "Socket startup failed with error:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
+			return false;
 		}
 
 		LANDestination.sin_family = AF_INET;
@@ -98,6 +102,7 @@ bool SendWakeOnLAN(const std::string MACAddress, unsigned PortAddress, unsigned 
 		{
 			std::cout << "Sending magic packet fails with error:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
+			return false;
 		}
 
 	}
@@ -107,6 +112,7 @@ bool SendWakeOnLAN(const std::string MACAddress, unsigned PortAddress, unsigned 
 
 int main(int argc, char* argv[])
 {
+	// Handle input arguments
 	if (argc != 2)
 	{
 		PrintUsage(argv[0]);
@@ -119,16 +125,31 @@ int main(int argc, char* argv[])
 			PrintHelp();
 	}
 
-
+	// Read all addresses from address file
 	std::string MACFileName{ "MACAddresses.txt" };
 	std::vector<std::string> MACAddressList = ReadAddresses(MACFileName);
 
+	// Sending configurations
+	unsigned short PortAddress{ 9 };
+	unsigned long BroadcastAddress{ 0xFFFFFFFF };
+
+
+	// Sending Wake On LAN signals to all listed MAC addresses
+	auto AddressIter = MACAddressList.cbegin();
+	for (; AddressIter != MACAddressList.cend(); ++AddressIter)
+	{
+		if (SendWakeOnLAN((*AddressIter), PortAddress, BroadcastAddress))
+		{
+			std::cout << "Sending magic packet successful!" << std::endl;
+		}
+		else
+		{
+			std::cout << "Error occured!" << std::endl;
+			return 1;
+		}
+	}
+
 	
-
-	unsigned long BroadcastAddress { 0xFFFFFFFF };
-
-	
-
-	return 1;
+	return 0;
 
 }
