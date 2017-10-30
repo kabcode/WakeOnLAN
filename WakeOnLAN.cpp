@@ -95,6 +95,12 @@ int main(int argc, char* argv[])
 	{
 		SendingSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
 
+		if (SendingSocket == INVALID_SOCKET)
+		{
+			std::cout << "Socket is not initialized:" << std::endl;
+			std::cout << WSAGetLastError() << std::endl;
+		}
+
 		// Set socket options
 		const int optval{ 1 };
 		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) != NO_ERROR)
@@ -102,6 +108,8 @@ int main(int argc, char* argv[])
 			std::cout << "Socket startup failed with error:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
 		}
+
+
 	}
 
 	return 1;
