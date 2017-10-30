@@ -48,18 +48,60 @@ std::vector<std::string> ReadAddresses(std::string AddressFileName)
 	return MACAddresses;
 }
 
-bool SendWakeOnLAN(const std::string MACAddress, unsigned PortAddress, unsigned long Broadcast)
+bool SendWakeOnLAN(const std::string MACAddress, unsigned PortAddress, unsigned long BroadcastAddress)
 {
 
 	// Build message
 	// 6x 0xFF followed 16x MACAddress
-	std::string Message(6, 0xFF);
+	std::string Message( 6, 0xFF );
 	for (auto i = 0; i < 16; ++i)
 	{
 		Message += MACAddress;
 	}
 
 	// Create socket
+	// Socket variables
+	WSADATA WSAData;
+	SOCKET SendingSocket = INVALID_SOCKET;
+	struct sockaddr_in LANDestination {};
+
+	// Initialize WinSock
+	if (WSAStartup(MAKEWORD(2, 2), &WSAData) != NO_ERROR)
+	{
+		std::cout << "WSA startup failed with error:" << std::endl;
+		std::cout << WSAGetLastError() << std::endl;
+	}
+	else
+	{
+		SendingSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+		if (SendingSocket == INVALID_SOCKET)
+		{
+			std::cout << "Socket is not initialized:" << std::endl;
+			std::cout << WSAGetLastError() << std::endl;
+		}
+
+		// Set socket options
+		const int optval{ 1 };
+		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) != NO_ERROR)
+		{
+			std::cout << "Socket startup failed with error:" << std::endl;
+			std::cout << WSAGetLastError() << std::endl;
+		}
+
+		LANDestination.sin_family = AF_INET;
+		LANDestination.sin_port = htons(PortAddress);
+		LANDestination.sin_addr.s_addr = BroadcastAddress;
+
+		// send Wake On LAN packet
+		if (sendto(SendingSocket, (char*) Message.c_str(), 102, 0, reinterpret_cast<sockaddr*>(&LANDestination), sizeof(LANDestination)) != NO_ERROR)
+		{
+			std::cout << "Sending magic packet fails with error:" << std::endl;
+			std::cout << WSAGetLastError() << std::endl;
+		}
+
+	}
+
 	return true;
 }
 
@@ -78,39 +120,14 @@ int main(int argc, char* argv[])
 	}
 
 
-	std::string MACFileName("MACAddresses.txt");
+	std::string MACFileName{ "MACAddresses.txt" };
 	std::vector<std::string> MACAddressList = ReadAddresses(MACFileName);
 
-	// Socket variables
-	WSADATA WsaData;
-	SOCKET SendingSocket = INVALID_SOCKET;
+	
 
-	// Initialize WinSock
-	if (WSAStartup(MAKEWORD(2, 2), &WsaData) != NO_ERROR)
-	{
-		std::cout << "WSA startup failed with error:" << std::endl;
-		std::cout << WSAGetLastError() << std::endl;
-	}
-	else
-	{
-		SendingSocket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+	unsigned long BroadcastAddress { 0xFFFFFFFF };
 
-		if (SendingSocket == INVALID_SOCKET)
-		{
-			std::cout << "Socket is not initialized:" << std::endl;
-			std::cout << WSAGetLastError() << std::endl;
-		}
-
-		// Set socket options
-		const int optval{ 1 };
-		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) != NO_ERROR)
-		{
-			std::cout << "Socket startup failed with error:" << std::endl;
-			std::cout << WSAGetLastError() << std::endl;
-		}
-
-
-	}
+	
 
 	return 1;
 
