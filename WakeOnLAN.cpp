@@ -20,13 +20,15 @@ void PrintUsage(char* msg)
 void PrintHelp()
 {
 	std::cout << "-- Wake On LAN --" << std::endl;
-	std::cout << "For usage please create text file names 'MACAddresses.txt' with on MAC address per line." << std::endl;
-	std::cout << "For every MAC address a broadcast Wake-On-LAN call will be send." << std::endl;
-	std::cout << "A MAC address has the form 'XX:XX:XX:XX:XX:XX'." << std::endl;
-	std::cout << "-- Basic call --" << std::endl;
+	std::cout << "For usage please create text file names 'MACAddresses.txt' with on MAC address per line.";
+	std::cout << " For every MAC address a broadcast Wake-On-LAN call will be send.";
+	std::cout << " A MAC address has the form 'XX:XX:XX:XX:XX:XX'." << std::endl;
+
+	std::cout << std::endl << "-- Basic call --" << std::endl;
 	std::cout << "USAGE: WakeOnLAN.exe MACAddresses.txt" << std::endl;
-	std::cout << "-- Optional parameters --" << std::endl;
-	std::cout << "-h or --help" << std::endl;
+	
+	std::cout << std::endl << "-- Optional parameters --" << std::endl;
+	std::cout << "-h or --help \t Shows this information"<< std::endl;
 }
 
 std::vector<std::string> ReadAddresses(std::string AddressFileName)
@@ -119,10 +121,15 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	
 	for (auto i = 1; i < argc; ++i)
 	{
-		if (argv[i] == "--help" || argv[i] == "-h")
+		
+		if ( !strcmp(argv[i],"--help") || !strcmp(argv[i],"-h"))
+		{
 			PrintHelp();
+		}
+			
 	}
 
 	// Read all addresses from address file
