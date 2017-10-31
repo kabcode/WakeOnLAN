@@ -9,5 +9,4 @@ set(SRC
 	WakeOnLAN.cpp
 )
 
-
 add_executable(WakeOnLAN ${SRC})
