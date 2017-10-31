@@ -7,13 +7,9 @@
 #include <stdio.h>
 
 // windows socket includes
-#include <WinSock.h>
+#include <WinSock2.h>
 #include <Windows.h>
 #pragma comment(lib, "Ws2_32.lib")
-
-// Test includes
-
-
 
 void PrintUsage(char* msg)
 {
