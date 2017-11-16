@@ -24,6 +24,7 @@ void PrintHelp()
 	std::cout << "For usage please create text file names 'MACAddresses.txt' with on MAC address per line.";
 	std::cout << " For every MAC address a broadcast Wake-On-LAN call will be send.";
 	std::cout << " A MAC address has the form 'XX:XX:XX:XX:XX:XX'." << std::endl;
+	std::cout << " Every line beginning with '#' will be ignored." << std::endl;
 
 	std::cout << std::endl << "-- Basic call --" << std::endl;
 	std::cout << "WakeOnLAN.exe [options]" << std::endl;
@@ -45,6 +46,7 @@ std::vector<std::string> ReadAddresses(std::string AddressFileName)
 		while (std::getline(FID,Address))
 		{
 			Address.erase(std::remove_if(Address.begin(), Address.end(), isspace), Address.end());
+			if (Address[0] == '#') continue;
 			if (Address.size() > 0)
 				MACAddresses.push_back(Address);
 			std::cout << Address << std::endl;
@@ -87,12 +89,13 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 
 	for (auto i = 0; i < 6; ++i)
 	{
-		MAC[i] = std::stoul(StrMAC.substr(i * 2, 2),nullptr,16);
+		MAC[i] = static_cast<unsigned char>(std::stoul(StrMAC.substr(i * 2, 2), nullptr, 16));
 	}
 	
 	for (auto i = 1; i <= 16; ++i)
+	{
 		memcpy(&Message[i * 6], &MAC, 6 * sizeof(unsigned char));
-
+	}
 	
 	// Create socket
 	// Socket variables
