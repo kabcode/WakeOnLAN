@@ -5,11 +5,19 @@
 #include <string>
 #include <algorithm>
 #include <stdio.h>
+#include <experimental\filesystem> // will be updated with c++17
 
 // windows socket includes
 #include <WinSock2.h>
 #include <Windows.h>
 #pragma comment(lib, "Ws2_32.lib")
+
+// default values
+// Default MAC address file name
+std::string MACFileName{ "MACAddresses.txt" };
+// Default port on receiving device
+unsigned short PortAddress{ 9 };
+unsigned long BroadcastAddress{ 0xFFFFFFFF };
 
 void PrintUsage(char* msg)
 {
@@ -23,8 +31,7 @@ void PrintHelp()
 	std::cout << "-- Wake On LAN --" << std::endl;
 	std::cout << "For usage please create text file names 'MACAddresses.txt' with on MAC address per line.";
 	std::cout << " For every MAC address a broadcast Wake-On-LAN call will be send.";
-	std::cout << " A MAC address has the form 'XX:XX:XX:XX:XX:XX'." << std::endl;
-	std::cout << " Every line beginning with '#' will be ignored." << std::endl;
+	std::cout << " A MAC address has the form 'XX:XX:XX:XX:XX:XX'. Every line beginning with '#' will be ignored." << std::endl;
 
 	std::cout << std::endl << "-- Basic call --" << std::endl;
 	std::cout << "WakeOnLAN.exe [options]" << std::endl;
@@ -34,6 +41,22 @@ void PrintHelp()
 	std::cout << "-f or --file [filename] \t Set other MAC address file (default: MACAddresses.txt)" << std::endl;
 	std::cout << "-p or --port [portnumber]\t Set other port file (default: 9)" << std::endl;
 	std::cout << std::endl;
+}
+
+void CreateMACAddressFile()
+{
+	std::ofstream AddressFileStream;
+	AddressFileStream.open(MACFileName);
+	if (AddressFileStream.is_open())
+	{
+		AddressFileStream << "# Enter your the target MAC address here.\n# MAC addresses have the form: XX:XX:XX:XX:XX:XX\n# Comments can be made with '#' at begin of a line." << std::endl;
+		AddressFileStream.close();
+	}
+	else
+	{
+		std::cout << "Could not create MAC address file." << std::endl;
+	}
+	
 }
 
 std::vector<std::string> ReadAddresses(std::string AddressFileName)
@@ -46,10 +69,10 @@ std::vector<std::string> ReadAddresses(std::string AddressFileName)
 		while (std::getline(FID,Address))
 		{
 			Address.erase(std::remove_if(Address.begin(), Address.end(), isspace), Address.end());
+			// skip commented lines
 			if (Address[0] == '#') continue;
 			if (Address.size() > 0)
 				MACAddresses.push_back(Address);
-			std::cout << Address << std::endl;
 		}
 		FID.close();
 	}
@@ -84,8 +107,6 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 	unsigned char MAC[6];
 	std::string StrMAC = MACAddress;
 	RemoveCharsFromString(StrMAC, ":-");
-	std::cout << StrMAC << std::endl;
-
 
 	for (auto i = 0; i < 6; ++i)
 	{
@@ -135,7 +156,7 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 		LANDestination.sin_port = htons(PortAddress);
 		LANDestination.sin_addr.s_addr = BroadcastAddress;
 
-		// send Wake On LAN packet
+		// Send Wake On LAN packet
 		if (sendto(SendingSocket, (char*) Message, 102, 0, reinterpret_cast<sockaddr*>(&LANDestination), sizeof(LANDestination)) == ERROR)
 		{
 			std::cout << "Sending magic packet fails with error:" << std::endl;
@@ -150,13 +171,6 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 
 int main(int argc, char* argv[])
 {
-
-	
-	// Default MAC address file name
-	std::string MACFileName{ "MACAddresses.txt" };
-	// Default port on receiving device
-	unsigned short PortAddress{ 9 };
-	unsigned long BroadcastAddress{ 0xFFFFFFFF };
 
 	// Handle input arguments
 	for (auto i = 1; i < argc; ++i)
@@ -182,11 +196,19 @@ int main(int argc, char* argv[])
 			
 	}
 
+	// Check if MAC address file name exist
+	if (!std::experimental::filesystem::exists(MACFileName))
+	{
+		std::cout << "MAC file is not found. MAC file is created in current directory." << std::endl;
+		CreateMACAddressFile();
+		return EXIT_FAILURE;
+	}
 	// Read all addresses from address file
 	std::vector<std::string> MACAddressList = ReadAddresses(MACFileName);
 
+#ifdef DEBUG
 	std::cout << "Broadcast address: " << BroadcastAddress << std::endl;
-
+#endif // DEBUG
 
 	// Sending Wake On LAN signals to all listed MAC addresses
 	auto AddressIter = MACAddressList.cbegin();
@@ -198,10 +220,10 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			return 1;
+			return EXIT_FAILURE;
 		}
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 
 }
