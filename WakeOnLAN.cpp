@@ -125,11 +125,11 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 	struct sockaddr_in LANDestination {};
 
 	// Initialize WinSock
-	if (WSAStartup(MAKEWORD(2, 2), &WSAData) != NO_ERROR)
+	if (WSAStartup(MAKEWORD(2, 2), &WSAData) == ERROR)
 	{
 		std::cout << "WSA startup failed with error:" << std::endl;
 		std::cout << WSAGetLastError() << std::endl;
-		return false;
+		return 1;
 	}
 	else
 	{
@@ -140,16 +140,16 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 		{
 			std::cout << "Socket is not initialized:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
-			return false;
+			return 1;
 		}
 
 		// Set socket options (broadcast)
 		const bool optval = TRUE;
-		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) != NO_ERROR)
+		if (setsockopt(SendingSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval)) == ERROR)
 		{
 			std::cout << "Socket startup failed with error:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
-			return false;
+			return 1;
 		}
 
 		LANDestination.sin_family = AF_INET;
@@ -161,12 +161,23 @@ bool SendWakeOnLAN(std::string MACAddress, unsigned PortAddress, unsigned long B
 		{
 			std::cout << "Sending magic packet fails with error:" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
-			return false;
+			return 1;
 		}
+
+		// Close socket after sending
+		if (closesocket(SendingSocket) == ERROR) {
+			std::cout << "Closing socket fails with error:" << std::endl;
+			std::cout << WSAGetLastError() << std::endl;
+			WSACleanup();
+			return 1;
+		}
+
+		// Deregister the WSAStartup call
+		WSACleanup();
 
 	}
 
-	return true;
+	return 0;
 }
 
 int main(int argc, char* argv[])
